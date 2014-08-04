@@ -10,8 +10,9 @@ partition keys and composite clustering keys.
 Usage
 =====
 
+```
 from table_iterator import TableIterator
-
 
 for row in TableIterator(MyCqlModel):
     print row
+```
