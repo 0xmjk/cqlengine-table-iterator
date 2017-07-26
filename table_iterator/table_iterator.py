@@ -1,5 +1,5 @@
 import cqlengine
-
+from cassandra.cqlengine.functions import Token
 
 class TableIterator(object):
     """
@@ -90,7 +90,7 @@ class TableIterator(object):
         cluster_where_clause = dict(prev_clustering_key_vals.items())
 
         # Iterator over the ordered clustering keys in reverse order.
-        for c_key_name, c_key_col in reversed(self.clustering_keys.items()):
+        for c_key_name, c_key_col in reversed(list(self.clustering_keys.items())):
             # Drop the equals clause for the current clustering key because we want a paging conditional ('gt' or 'lt').
             del cluster_where_clause[c_key_name]
 
@@ -100,7 +100,7 @@ class TableIterator(object):
 
             # Generate our new where clause consisting of the current partition, our paging clustering conditions and
             # any where_filters that were originally handed to TableIterator.
-            where_clause = dict(prev_partition_key_vals.items() + cluster_where_clause.items() + self.where_filters.items())
+            where_clause = dict(list(prev_partition_key_vals.items()) + list(cluster_where_clause.items()) + list(self.where_filters.items()))
 
             current_query = self.model_class.objects(**where_clause).limit(self.blocksize)
 
@@ -117,15 +117,15 @@ class TableIterator(object):
         # current partition we are looking at.
 
         # Generate the partition key token for the last seen object.
-        token = cqlengine.Token(previous_object.pk)
+        token = Token(previous_object.pk)
 
         # Create a where clause for the partition key token.
         pk_token_where = self.generate_where_clause_key('pk__token', 'gt')
         partition_key_clause = {pk_token_where: token}
 
-        where_clause = dict(partition_key_clause.items() + self.where_filters.items())
+        where_clause = dict(list(partition_key_clause.items()) + list(self.where_filters.items()))
 
-        query = self.model_class.objects(**where_clause).limit(self.blocksize)
+        query = self.model_class.filter(**where_clause).limit(self.blocksize)
 
         return query
 
